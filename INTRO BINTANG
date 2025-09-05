@@ -1,0 +1,54 @@
+# --- SETTINGS ---
+duration = 7
+W, H = 1280, 720
+bg_color = (0, 0, 0)
+
+# --- BACKGROUND CLIP (black base) ---
+background = ColorClip((W, H), color=bg_color, duration=duration)
+
+# --- FLAG FADE IN (simulate waving with gradient) ---
+flag = ColorClip((W, H), color=(0, 40, 104), duration=3)  # navy background
+flag = flag.set_opacity(0.8).fadein(1).fadeout(1)
+
+# --- TITLE TEXT ---
+title = (TextClip("DOKUMENTARI KEMERDEKAAN MALAYSIA",
+                  fontsize=70, color='gold', font="Arial-Bold",
+                  stroke_color="white", stroke_width=3)
+         .set_duration(3)
+         .set_start(4)
+         .set_pos('center'))
+
+# --- PETALS FLOATING EFFECT (simple circles) ---
+def petals_frame(t):
+    surface = np.zeros((H, W, 3), dtype=np.uint8)
+    np.random.seed(42)  # fixed positions for repeatability
+    for i in range(10):
+        x = int((i * 120 + t*100) % W)
+        y = int((i * 60 + t*80) % H)
+        cv2.circle(surface, (x, y), 15, (220, 20, 60), -1)
+    return surface
+
+import cv2
+petals = VideoClip(petals_frame, duration=duration).set_opacity(0.4)
+
+# --- FIREWORKS BURST ---
+def fireworks_frame(t):
+    surface = np.zeros((H, W, 3), dtype=np.uint8)
+    center = (W//2, H//2)
+    colors = [(255,0,0),(0,0,255),(255,255,0),(255,255,255)]
+    radius = int(50 + t*120)
+    for i, c in enumerate(colors):
+        angle = i * np.pi/2 + t
+        x = int(center[0] + radius * np.cos(angle))
+        y = int(center[1] + radius * np.sin(angle))
+        cv2.circle(surface, (x, y), 20, c, -1)
+    return surface
+
+fireworks = (VideoClip(fireworks_frame, duration=2)
+             .set_start(5)
+             .set_pos('center')
+             .fadeout(1))
+
+# --- FINAL COMPOSITION ---
+final = CompositeVideoClip([background, flag, petals, title, fireworks], size=(W,H))
+final.write_videofile("merdeka_intro.mp4", fps=24)
